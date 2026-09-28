@@ -1,18 +1,29 @@
+const Customer = require('../models/Customer');
+const generateToken = require('../utils/generateToken');
+
+// POST /api/auth/register
 exports.register = async (req, res, next) => {
   try {
     const { email, phone, password, firstName, lastName } = req.body;
-    
-    // basic validation
+
     if (!email || !phone || !password || !firstName || !lastName) {
-      return res.status(400).json({ message: 'All fields required' });
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const existing = await Customer.findOne({ $or: [{ email }, { phone }] });
+    const existing = await Customer.findOne({
+      $or: [{ email: email.toLowerCase() }, { phone }],
+    });
     if (existing) {
       return res.status(409).json({ message: 'Email or phone already registered' });
     }
 
-    const customer = await Customer.create({ email, phone, password, firstName, lastName });
+    const customer = await Customer.create({
+      email,
+      phone,
+      password,
+      firstName,
+      lastName,
+    });
 
     res.status(201).json({
       message: 'Registration successful',
@@ -29,15 +40,19 @@ exports.register = async (req, res, next) => {
   }
 };
 
-
+// POST /api/auth/login
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password required' });
+      return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const customer = await Customer.findOne({ email }).select('+password');
+    const customer = await Customer.findOne({
+      email: email.toLowerCase(),
+    }).select('+password');
+
     if (!customer) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -65,7 +80,7 @@ exports.login = async (req, res, next) => {
   }
 };
 
-
+// GET /api/auth/me
 exports.getMe = async (req, res) => {
   res.status(200).json({
     customer: {
