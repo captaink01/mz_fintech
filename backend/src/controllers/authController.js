@@ -4,9 +4,9 @@ const generateToken = require('../utils/generateToken');
 // POST /api/auth/register
 exports.register = async (req, res, next) => {
   try {
-    const { email, phone, password, firstName, lastName } = req.body;
+    const { email, phone, password, firstName, lastName, dob } = req.body;
 
-    if (!email || !phone || !password || !firstName || !lastName) {
+    if (!email || !phone || !password || !firstName || !lastName || !dob) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
@@ -23,6 +23,7 @@ exports.register = async (req, res, next) => {
       password,
       firstName,
       lastName,
+      dob
     });
 
     res.status(201).json({

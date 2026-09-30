@@ -10,6 +10,7 @@ const customerSchema = new mongoose.Schema(
     password: { type: String, required: true, select: false },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
+    dob: { type: Date, required: true },
 
     bvn: { type: String, unique: true, sparse: true },
     nin: { type: String, unique: true, sparse: true },
@@ -20,9 +21,8 @@ const customerSchema = new mongoose.Schema(
 );
 
 customerSchema.pre('save', async function () {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
-  ;
 });
 
 customerSchema.methods.comparePassword = function (candidatePassword) {

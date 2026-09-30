@@ -18,6 +18,10 @@ function errorHandler(err, req, res, next) {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 
+  if (err.isOperational) {
+  return res.status(err.statusCode).json({ message: err.message });
+}
+
   res.status(500).json({ message: 'Something went wrong' });
 }
 
