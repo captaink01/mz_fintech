@@ -1,6 +1,6 @@
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const ApiError = require('../utils/ApiError');
+const axios = require("axios");
+const jwt = require("jsonwebtoken");
+const ApiError = require("../utils/ApiError");
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 const NIBSS_BASE_URL = process.env.NIBSS_BASE_URL;
@@ -12,7 +12,7 @@ const TIMEOUT_MS = 40000; // Render cold starts can take 30s+
 const http = axios.create({
   baseURL: NIBSS_BASE_URL,
   timeout: TIMEOUT_MS,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 // ─── Token cache ──────────────────────────────────────────────────────────────
@@ -26,14 +26,14 @@ let cachedTokenExpiresAt = 0; // ms since epoch
 let inflightTokenRequest = null; // de-dupes concurrent refreshes
 
 async function fetchNewToken() {
-  const { data } = await http.post('/api/auth/token', {
+  const { data } = await http.post("/api/auth/token", {
     apiKey: NIBSS_API_KEY,
     apiSecret: NIBSS_API_SECRET,
   });
 
   const decoded = jwt.decode(data.token);
   if (!decoded || !decoded.exp) {
-    throw new ApiError(502, 'NibssByPhoenix returned an unparseable token');
+    throw new ApiError(502, "NibssByPhoenix returned an unparseable token");
   }
 
   cachedToken = data.token;
@@ -62,7 +62,7 @@ async function getToken() {
 // ─── Request interceptor: attach token to every call ─────────────────────────
 http.interceptors.request.use(async (config) => {
   // The token endpoint itself doesn't need a token.
-  if (config.url === '/api/auth/token') return config;
+  if (config.url === "/api/auth/token") return config;
 
   const token = await getToken();
   config.headers.Authorization = `Bearer ${token}`;
@@ -80,7 +80,7 @@ http.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !config._retried &&
-      config.url !== '/api/auth/token'
+      config.url !== "/api/auth/token"
     ) {
       config._retried = true;
       cachedToken = null;
@@ -90,11 +90,11 @@ http.interceptors.response.use(
       return http(config);
     }
 
-    if (error.code === 'ECONNABORTED') {
-      throw new ApiError(504, 'NibssByPhoenix did not respond in time');
+    if (error.code === "ECONNABORTED") {
+      throw new ApiError(504, "NibssByPhoenix did not respond in time");
     }
     if (!error.response) {
-      throw new ApiError(502, 'Could not reach NibssByPhoenix');
+      throw new ApiError(502, "Could not reach NibssByPhoenix");
     }
 
     const status = error.response.status;
@@ -103,42 +103,42 @@ http.interceptors.response.use(
       payload.message || payload.error || `NibssByPhoenix error (${status})`;
 
     if (status === 401 || status === 403) {
-      throw new ApiError(502, 'NibssByPhoenix authentication failed');
+      throw new ApiError(502, "NibssByPhoenix authentication failed");
     }
     if (status >= 400 && status < 500) {
       throw new ApiError(400, message);
     }
     throw new ApiError(502, message);
-  }
+  },
 );
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 // One method per Nibss endpoint we use. Each returns OUR shape, not theirs.
 
 async function insertBvn({ bvn, firstName, lastName, dob, phone }) {
-  const { data } = await http.post('/api/insertBvn', {
+  const { data } = await http.post("/api/insertBvn", {
     bvn,
     firstName,
     lastName,
     dob,
     phone,
   });
-  return { message: data.message ?? 'BVN created successfully', raw: data };
+  return { message: data.message ?? "BVN created successfully", raw: data };
 }
 
 async function insertNin({ nin, firstName, lastName, dob }) {
-  const { data } = await http.post('/api/insertNin', {
+  const { data } = await http.post("/api/insertNin", {
     nin,
     firstName,
     lastName,
     dob,
   });
-  return { message: data.message ?? 'NIN created successfully', raw: data };
+  return { message: data.message ?? "NIN created successfully", raw: data };
 }
 
 async function createAccount({ kycType, kycID, dob }) {
-  const { data } = await http.post('/api/account/create', {
-    kycType: kycType.toUpperCase(),
+  const { data } = await http.post("/api/account/create", {
+    kycType: kycType.toLowerCase(), // ← lowercase
     kycID,
     dob,
   });
@@ -163,12 +163,16 @@ async function nameEnquiry({ accountNumber }) {
 
 async function getBalance({ accountNumber }) {
   const { data } = await http.get(`/api/account/balance/${accountNumber}`);
-  return { accountNumber: data.accountNumber, balance: data.balance, raw: data };
+  return {
+    accountNumber: data.accountNumber,
+    balance: data.balance,
+    raw: data,
+  };
 }
 
 async function initiateTransfer({ from, to, amount }) {
   // Nibss expects amount as a STRING. Convert here so callers never have to remember.
-  const { data } = await http.post('/api/transfer', {
+  const { data } = await http.post("/api/transfer", {
     from,
     to,
     amount: String(amount),
