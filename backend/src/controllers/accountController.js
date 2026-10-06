@@ -99,3 +99,24 @@ exports.getBalance = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET /api/accounts/name-enquiry/:accountNumber
+exports.nameEnquiry = async (req, res, next) => {
+  try {
+    const { accountNumber } = req.params;
+
+    if (!/^\d{10}$/.test(accountNumber)) {
+      throw new ApiError(400, 'Account number must be exactly 10 digits');
+    }
+
+    const result = await nibss.nameEnquiry({ accountNumber });
+
+    res.status(200).json({
+      accountNumber: result.accountNumber,
+      accountName: result.accountName,
+      bankName: result.bankName,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
