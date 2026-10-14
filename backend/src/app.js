@@ -12,6 +12,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/onboarding', require('./routes/onboardingRoutes'));
 app.use('/api/accounts', require('./routes/accountRoutes'));
+app.use('/api/transfers', require('./routes/transactionRoutes'));
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
