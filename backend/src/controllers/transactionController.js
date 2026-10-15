@@ -152,3 +152,62 @@ exports.initiateTransfer = async (req, res, next) => {
     next(error);
   }
 };
+
+
+// GET /api/transfers/:reference
+exports.getTransactionStatus = async (req, res, next) => {
+  try {
+    const { reference } = req.params;
+
+    // Isolation baked into the query.
+    // The `customerId` filter means a customer can NEVER see another's tx.
+    const transaction = await Transaction.findOne({
+      reference,
+      customerId: req.customer._id,
+    });
+
+    if (!transaction) {
+      // We return 404 whether the reference doesn't exist OR belongs to
+      // someone else. Same response = no leak about which case it is.
+      throw new ApiError(404, 'Transaction not found');
+    }
+
+    // If it's still PENDING and we have a Nibss transaction ID, ask Nibss.
+    if (transaction.status === 'PENDING' && transaction.nibssTransactionId) {
+      try {
+        const result = await nibss.getTransaction({
+          transactionId: transaction.nibssTransactionId,
+        });
+
+        if (result.status === 'SUCCESS' || result.status === 'FAILED') {
+          transaction.status = result.status;
+          await transaction.save();
+
+          // Best-effort balance sync if it succeeded late
+          if (result.status === 'SUCCESS') {
+            const account = await Account.findOne({ customerId: req.customer._id });
+            if (account) {
+              try {
+                const { balance } = await nibss.getBalance({
+                  accountNumber: account.accountNumber,
+                });
+                account.balance = balance;
+                await account.save();
+              } catch (err) {
+                console.warn('[status] balance sync failed:', err.message);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Nibss couldn't tell us. Don't fail the whole request — we still
+        // return our own record. Just log it.
+        console.warn('[status] Nibss poll failed:', err.message);
+      }
+    }
+
+    res.status(200).json({ transaction: transactionView(transaction) });
+  } catch (error) {
+    next(error);
+  }
+};
