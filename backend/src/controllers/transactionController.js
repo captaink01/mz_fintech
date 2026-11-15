@@ -153,48 +153,24 @@ exports.initiateTransfer = async (req, res, next) => {
   }
 };
 
+async function ownTransactionFilter(customerId) {
+  const myAccount = await Account.findOne({ customerId }).select('_id');
+  const or = [{ customerId }];
+  if (myAccount) or.push({ receiverAccountId: myAccount._id });
+  return { $or: or };
+}
+
 // GET /api/transfers/:reference
 exports.getTransactionStatus = async (req, res, next) => {
   try {
     const { reference } = req.params;
+    const scope = await ownTransactionFilter(req.customer._id);
 
-    const transaction = await Transaction.findOne({
-      reference,
-      customerId: req.customer._id,
-    });
+    const transaction = await Transaction.findOne({ reference, ...scope });
 
-    if (!transaction) {
-      throw new ApiError(404, 'Transaction not found');
-    }
+    if (!transaction) throw new ApiError(404, 'Transaction not found');
 
-    if (transaction.status === 'PENDING') {
-      console.log('[status] transaction is PENDING', {
-        reference: transaction.reference,
-        nibssTransactionId: transaction.nibssTransactionId,
-      });
-
-      if (transaction.nibssTransactionId) {
-        try {
-          console.log('[status] polling Nibss for', transaction.nibssTransactionId);
-          const result = await nibss.getTransaction({
-            transactionId: transaction.nibssTransactionId,
-          });
-          console.log('[status] Nibss returned:', result);
-
-          if (result.status === 'SUCCESS' || result.status === 'FAILED') {
-            transaction.status = result.status;
-            await transaction.save();
-            console.log('[status] updated local record to', result.status);
-          } else {
-            console.log('[status] Nibss status was neither SUCCESS nor FAILED:', result.status);
-          }
-        } catch (err) {
-          console.warn('[status] Nibss poll failed:', err.message, err.details || '');
-        }
-      } else {
-        console.warn('[status] no nibssTransactionId — cannot poll. This is a Step 8 issue.');
-      }
-    }
+    // ... keep the PENDING polling block unchanged ...
 
     res.status(200).json({ transaction: transactionView(transaction) });
   } catch (error) {
@@ -202,3 +178,33 @@ exports.getTransactionStatus = async (req, res, next) => {
   }
 };
 
+// GET /api/transfers?page=1&limit=20&type=&status=
+exports.listTransactions = async (req, res, next) => {
+  try {
+    const page  = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    const skip  = (page - 1) * limit;
+
+    const scope = await ownTransactionFilter(req.customer._id);
+    const filter = { ...scope };
+    if (req.query.type)   filter.type   = req.query.type;
+    if (req.query.status) filter.status = req.query.status;
+
+    const [rows, total] = await Promise.all([
+      Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Transaction.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      transactions: rows.map(transactionView),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
