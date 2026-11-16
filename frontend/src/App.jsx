@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Onboarding from './pages/Onboarding';
+import Transfer from './pages/Transfer';
+import History from './pages/History';
 
 export default function App() {
   const { customer } = useAuth();
@@ -32,6 +34,14 @@ export default function App() {
       <Onboarding />
     </ProtectedRoute>
   }
+/>
+<Route
+  path="/transfer"
+  element={<ProtectedRoute><Transfer /></ProtectedRoute>}
+/>
+<Route
+  path="/history"
+  element={<ProtectedRoute><History /></ProtectedRoute>}
 />
     </Routes>
   );
