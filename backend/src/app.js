@@ -8,7 +8,8 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
+const cors = require('cors');
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/onboarding', require('./routes/onboardingRoutes'));
 app.use('/api/accounts', require('./routes/accountRoutes'));
