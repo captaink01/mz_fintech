@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Onboarding from './pages/Onboarding';
 
 export default function App() {
   const { customer } = useAuth();
@@ -24,6 +25,14 @@ export default function App() {
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+  path="/onboarding"
+  element={
+    <ProtectedRoute>
+      <Onboarding />
+    </ProtectedRoute>
+  }
+/>
     </Routes>
   );
 }
