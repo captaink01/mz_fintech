@@ -62,7 +62,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
   );
 }
 
-function Logo({ dark = false }) {
+export function Logo({ dark = false }) {
   return (
     <span
       className={`flex h-9 w-9 items-center justify-center rounded-xl ${

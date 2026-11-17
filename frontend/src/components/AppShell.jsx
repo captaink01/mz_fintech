@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { BRAND } from './AuthLayout';
+import { BRAND, Logo } from './AuthLayout';
 
 /* ── Icons ─────────────────────────────────────────── */
 export function Icon({ children, className = 'h-5 w-5' }) {
@@ -91,7 +91,11 @@ export default function AppShell({ children }) {
       {/* Desktop top bar */}
       <header className="hidden border-b border-slate-200 bg-white md:block">
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-6">
-          <Link to="/dashboard" className="text-lg font-semibold tracking-tight text-slate-900">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-slate-900"
+          >
+            <Logo dark />
             {BRAND}
           </Link>
           <nav className="flex gap-1">
