@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import AuthLayout, { ErrorBanner, Field, SubmitButton } from '../components/AuthLayout';
+import { PageLoader, CheckIcon } from '../components/AppShell';
 
 export default function Onboarding() {
   const { customer, updateCustomer, logout } = useAuth();
@@ -66,52 +68,48 @@ export default function Onboarding() {
   };
 
   if (checkingAccount) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <p className="text-slate-500">Checking your account…</p>
-      </div>
-    );
+    return <PageLoader label="Checking your account…" />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 py-10 px-4">
-      <div className="max-w-md mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-slate-800">Onboarding</h1>
-          <button onClick={logout} className="text-sm text-slate-600 underline">
-            Logout
-          </button>
-        </div>
-
-        {/* ── Step 1: KYC ─────────────────────────────────── */}
-        <div className="bg-white rounded-xl shadow p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                isVerified ? 'bg-green-500 text-white' : 'bg-slate-300 text-slate-700'
-              }`}
-            >
-              {isVerified ? '✓' : '1'}
-            </div>
-            <h2 className="font-semibold text-slate-800">Verify your identity</h2>
+    <AuthLayout
+      title="Set up your account"
+      subtitle="Verify your identity, then open your bank account."
+      footer={
+        <button
+          type="button"
+          onClick={logout}
+          className="font-semibold text-emerald-800 hover:underline"
+        >
+          Log out
+        </button>
+      }
+    >
+      <ol className="space-y-4">
+        {/* ── Step 1: KYC ── */}
+        <li className="rounded-2xl border border-slate-200 p-5">
+          <div className="flex items-center gap-3">
+            <StepBadge done={isVerified} active={!isVerified}>1</StepBadge>
+            <h2 className="font-semibold text-slate-900">Verify your identity</h2>
           </div>
 
           {isVerified ? (
-            <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded p-3">
-              Verified via {customer.hasBvn ? 'BVN' : 'NIN'}
+            <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Verified with your {customer.hasBvn ? 'BVN' : 'NIN'}.
             </p>
           ) : (
-            <form onSubmit={onVerifyKyc} className="space-y-3">
-              <div className="flex gap-2">
+            <form onSubmit={onVerifyKyc} className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
                 {['BVN', 'NIN'].map((k) => (
                   <button
                     key={k}
                     type="button"
+                    aria-pressed={kycType === k}
                     onClick={() => { setKycType(k); setKycValue(''); setKycError(''); }}
-                    className={`flex-1 py-2 rounded border text-sm ${
+                    className={`h-10 rounded-lg text-sm font-semibold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/20 ${
                       kycType === k
-                        ? 'bg-slate-800 text-white border-slate-800'
-                        : 'bg-white text-slate-700 border-slate-300'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     {k}
@@ -119,66 +117,75 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              {kycError && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
-                  {kycError}
-                </div>
-              )}
+              <ErrorBanner>{kycError}</ErrorBanner>
 
-              <input
+              <Field
+                label={`${kycType} (11 digits)`}
                 required
                 inputMode="numeric"
                 pattern="[0-9]{11}"
                 maxLength={11}
                 placeholder={`Enter 11-digit ${kycType}`}
+                inputClassName="font-mono tracking-wide"
                 value={kycValue}
                 onChange={(e) => setKycValue(e.target.value.replace(/\D/g, ''))}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
               />
 
-              <button
-                type="submit"
-                disabled={kycBusy || kycValue.length !== 11}
-                className="w-full bg-slate-800 text-white rounded py-2 hover:bg-slate-900 disabled:opacity-60"
+              <SubmitButton
+                busy={kycBusy}
+                busyText="Verifying…"
+                disabled={kycValue.length !== 11}
               >
-                {kycBusy ? 'Verifying…' : `Verify ${kycType}`}
-              </button>
+                Verify {kycType}
+              </SubmitButton>
             </form>
           )}
-        </div>
+        </li>
 
-        {/* ── Step 2: Create account ──────────────────────── */}
-        <div className={`bg-white rounded-xl shadow p-6 space-y-4 ${isVerified ? '' : 'opacity-60'}`}>
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                isVerified ? 'bg-slate-800 text-white' : 'bg-slate-300 text-slate-700'
-              }`}
-            >
-              2
-            </div>
-            <h2 className="font-semibold text-slate-800">Create your bank account</h2>
+        {/* ── Step 2: Create account ── */}
+        <li
+          className={`rounded-2xl border border-slate-200 p-5 transition ${
+            isVerified ? '' : 'opacity-60'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <StepBadge active={isVerified}>2</StepBadge>
+            <h2 className="font-semibold text-slate-900">Create your bank account</h2>
           </div>
 
-          <p className="text-sm text-slate-500">
-            Your new account will be pre-funded with <b>₦15,000</b> for testing.
+          <p className="mt-4 text-sm text-slate-500">
+            Your new account will be pre-funded with{' '}
+            <span className="font-semibold text-slate-800">₦15,000</span> for testing.
           </p>
 
-          {accountError && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
-              {accountError}
-            </div>
-          )}
+          <div className="mt-4 space-y-4">
+            <ErrorBanner>{accountError}</ErrorBanner>
 
-          <button
-            onClick={onCreateAccount}
-            disabled={!isVerified || accountBusy}
-            className="w-full bg-slate-800 text-white rounded py-2 hover:bg-slate-900 disabled:opacity-60"
-          >
-            {accountBusy ? 'Creating account…' : 'Create account'}
-          </button>
-        </div>
-      </div>
-    </div>
+            <SubmitButton
+              type="button"
+              onClick={onCreateAccount}
+              busy={accountBusy}
+              busyText="Creating account…"
+              disabled={!isVerified}
+            >
+              Create account
+            </SubmitButton>
+          </div>
+        </li>
+      </ol>
+    </AuthLayout>
+  );
+}
+
+function StepBadge({ done, active, children }) {
+  const tone = done
+    ? 'bg-emerald-600 text-white'
+    : active
+    ? 'bg-emerald-800 text-white'
+    : 'bg-slate-200 text-slate-600';
+  return (
+    <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${tone}`}>
+      {done ? <CheckIcon className="h-4 w-4" /> : children}
+    </span>
   );
 }

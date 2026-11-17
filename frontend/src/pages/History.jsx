@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { formatNaira, formatDate } from '../lib/format';
+import AppShell, { Card, PageHeader, StatusBadge, ChevronDownIcon } from '../components/AppShell';
+import { ErrorBanner } from '../components/AuthLayout';
+
+const selectClass =
+  'h-11 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-600/10';
 
 export default function History() {
   const { customer } = useAuth();
@@ -40,26 +45,27 @@ export default function History() {
   }, [type, status]);
 
   return (
-    <div className="min-h-screen bg-slate-100 py-8 px-4">
-      <div className="max-w-2xl mx-auto space-y-4">
-        <div className="flex justify-between items-center">
-          <Link to="/dashboard" className="text-sm text-slate-600 underline">
-            ← Back
-          </Link>
-          <h1 className="text-lg font-bold text-slate-800">Transaction history</h1>
+    <AppShell>
+      <PageHeader
+        title="History"
+        back="/dashboard"
+        action={
           <Link
             to="/transfer"
-            className="text-sm bg-slate-800 text-white px-3 py-1.5 rounded hover:bg-slate-900"
+            className="rounded-lg bg-emerald-800 px-3.5 py-2 text-sm font-semibold text-white hover:bg-emerald-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/30"
           >
             Send
           </Link>
-        </div>
+        }
+      />
 
-        <div className="flex gap-2 text-sm">
+      <div className="space-y-4">
+        <div className="flex gap-2">
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="border rounded px-2 py-1.5 bg-white"
+            aria-label="Filter by type"
+            className={selectClass}
           >
             <option value="">All types</option>
             <option value="INTRA_BANK">Intra-bank</option>
@@ -68,7 +74,8 @@ export default function History() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="border rounded px-2 py-1.5 bg-white"
+            aria-label="Filter by status"
+            className={selectClass}
           >
             <option value="">All statuses</option>
             <option value="SUCCESS">Success</option>
@@ -77,19 +84,29 @@ export default function History() {
           </select>
         </div>
 
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
-            {error}
-          </div>
-        )}
+        <ErrorBanner>{error}</ErrorBanner>
 
-        <div className="bg-white rounded-xl shadow divide-y divide-slate-100">
+        <Card className="divide-y divide-slate-100 overflow-hidden">
           {loading ? (
-            <p className="p-6 text-sm text-slate-500">Loading…</p>
+            [0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex animate-pulse items-center justify-between gap-4 p-4">
+                <div className="space-y-2">
+                  <div className="h-3.5 w-40 rounded bg-slate-100" />
+                  <div className="h-3 w-28 rounded bg-slate-100" />
+                </div>
+                <div className="space-y-2">
+                  <div className="ml-auto h-3.5 w-20 rounded bg-slate-100" />
+                  <div className="ml-auto h-3 w-14 rounded bg-slate-100" />
+                </div>
+              </div>
+            ))
           ) : transactions.length === 0 ? (
-            <p className="p-6 text-sm text-slate-500">
-              No transactions match your filters.
-            </p>
+            <div className="px-6 py-12 text-center">
+              <p className="font-medium text-slate-800">No transactions found</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Try changing or clearing your filters.
+              </p>
+            </div>
           ) : (
             transactions.map((tx) => {
               const isExpanded = expanded === tx.reference;
@@ -97,36 +114,34 @@ export default function History() {
                 <div key={tx.reference}>
                   <button
                     onClick={() => setExpanded(isExpanded ? null : tx.reference)}
-                    className="w-full text-left p-4 hover:bg-slate-50 flex justify-between gap-4"
+                    aria-expanded={isExpanded}
+                    className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50"
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900">
                         {tx.senderName} → {tx.receiverName}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {formatDate(tx.createdAt)} · {tx.type.replace('_', ' ')}
+                      <p className="truncate text-xs capitalize text-slate-500">
+                        {formatDate(tx.createdAt)} · {tx.type.replace('_', ' ').toLowerCase()}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-slate-800">
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold text-slate-900">
                         {formatNaira(tx.amount)}
                       </p>
-                      <span
-                        className={`inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                          tx.status === 'SUCCESS'
-                            ? 'bg-green-100 text-green-700'
-                            : tx.status === 'PENDING'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {tx.status}
-                      </span>
+                      <div className="mt-1">
+                        <StatusBadge status={tx.status} />
+                      </div>
                     </div>
+                    <ChevronDownIcon
+                      className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                        isExpanded ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
 
                   {isExpanded && (
-                    <div className="px-4 pb-4 text-xs text-slate-600 bg-slate-50 border-t border-slate-100 pt-3 space-y-1">
+                    <div className="space-y-2.5 border-t border-slate-100 bg-slate-50 px-4 py-4 text-sm">
                       <Row label="Reference" value={tx.reference} mono />
                       <Row label="From" value={`${tx.senderName} · ${tx.senderAccountNumber}`} />
                       <Row label="To" value={`${tx.receiverName} · ${tx.receiverAccountNumber} (${tx.receiverBankName})`} />
@@ -143,16 +158,16 @@ export default function History() {
               );
             })
           )}
-        </div>
+        </Card>
 
         {pagination && pagination.pages > 1 && (
-          <div className="flex justify-between items-center text-sm">
+          <div className="flex items-center justify-between text-sm">
             <button
               onClick={() => fetchPage(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="px-3 py-1.5 border rounded bg-white disabled:opacity-50"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-4 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              ← Prev
+              Previous
             </button>
             <span className="text-slate-500">
               Page {pagination.page} of {pagination.pages}
@@ -160,22 +175,24 @@ export default function History() {
             <button
               onClick={() => fetchPage(pagination.page + 1)}
               disabled={pagination.page >= pagination.pages}
-              className="px-3 py-1.5 border rounded bg-white disabled:opacity-50"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-4 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Next →
+              Next
             </button>
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }
 
 function Row({ label, value, mono }) {
   return (
-    <div className="flex gap-2">
-      <span className="w-20 text-slate-500 shrink-0">{label}</span>
-      <span className={`break-all ${mono ? 'font-mono' : ''}`}>{value}</span>
+    <div className="flex gap-3">
+      <span className="w-24 shrink-0 text-slate-500">{label}</span>
+      <span className={`min-w-0 break-all text-slate-800 ${mono ? 'font-mono text-xs leading-5' : ''}`}>
+        {value}
+      </span>
     </div>
   );
 }

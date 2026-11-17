@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AuthLayout, { ErrorBanner, Field, SubmitButton } from '../components/AuthLayout';
 
 export default function Register() {
   const { register } = useAuth();
@@ -32,71 +33,84 @@ export default function Register() {
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 py-8">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-3"
-      >
-        <h1 className="text-2xl font-bold text-slate-800">Create account</h1>
-
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
-            {error}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            required placeholder="First name"
-            value={form.firstName} onChange={set('firstName')}
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          />
-          <input
-            required placeholder="Last name"
-            value={form.lastName} onChange={set('lastName')}
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          />
-        </div>
-
-        <input
-          type="email" required placeholder="Email"
-          value={form.email} onChange={set('email')}
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-        />
-
-        <input
-          type="tel" required placeholder="Phone (e.g. 08012345678)"
-          value={form.phone} onChange={set('phone')}
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-        />
-
-        <div>
-          <label className="block text-xs text-slate-500 mb-1">Date of birth</label>
-          <input
-            type="date" required
-            value={form.dob} onChange={set('dob')}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          />
-        </div>
-
-        <input
-          type="password" required placeholder="Password" minLength={6}
-          value={form.password} onChange={set('password')}
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400"
-        />
-
-        <button
-          type="submit" disabled={busy}
-          className="w-full bg-slate-800 text-white rounded py-2 hover:bg-slate-900 disabled:opacity-60"
-        >
-          {busy ? 'Creating…' : 'Create account'}
-        </button>
-
-        <p className="text-sm text-slate-500 text-center">
+    <AuthLayout
+      title="Create your account"
+      subtitle="It takes about a minute to get started."
+      footer={
+        <>
           Already have an account?{' '}
-          <Link to="/login" className="text-slate-800 underline">Login</Link>
-        </p>
+          <Link to="/login" className="font-semibold text-emerald-800 hover:underline">
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="space-y-5">
+        <ErrorBanner>{error}</ErrorBanner>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="First name"
+            required
+            autoComplete="given-name"
+            value={form.firstName}
+            onChange={set('firstName')}
+          />
+          <Field
+            label="Last name"
+            required
+            autoComplete="family-name"
+            value={form.lastName}
+            onChange={set('lastName')}
+          />
+        </div>
+
+        <Field
+          label="Email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+          value={form.email}
+          onChange={set('email')}
+        />
+
+        <Field
+          label="Phone number"
+          type="tel"
+          required
+          autoComplete="tel"
+          inputMode="tel"
+          placeholder="08012345678"
+          value={form.phone}
+          onChange={set('phone')}
+        />
+
+        <Field
+          label="Date of birth"
+          type="date"
+          required
+          autoComplete="bday"
+          value={form.dob}
+          onChange={set('dob')}
+        />
+
+        <Field
+          label="Password"
+          type="password"
+          required
+          minLength={6}
+          autoComplete="new-password"
+          placeholder="Create a password"
+          hint="Use at least 6 characters."
+          value={form.password}
+          onChange={set('password')}
+        />
+
+        <SubmitButton busy={busy} busyText="Creating account…">
+          Create account
+        </SubmitButton>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
