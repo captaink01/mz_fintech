@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
+  // Must include /api, e.g. https://your-app.onrender.com/api
   baseURL: import.meta.env.VITE_API_URL,
+  timeout: 60000, // survives a Render cold start (~1 min)
   headers: { 'Content-Type': 'application/json' },
 });
 
